@@ -57,6 +57,17 @@ extern "C" {
         const void *user_ctx;
     } view_file_merge_ctx_t;
 
+    typedef struct result_list {
+        sized_buf *k, *v;
+        struct result_list *next;
+    } result_list_t;
+
+    typedef struct {
+        sized_buf *keys;
+        int count;
+        char *view_name;
+    } view_query_request_t;
+
     /* compare keys of a view btree */
     int view_key_cmp(const sized_buf *key1, const sized_buf *key2,
                      const void *user_ctx);

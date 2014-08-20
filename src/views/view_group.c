@@ -1296,6 +1296,92 @@ static couchstore_error_t update_view_btree(const char *source_file,
     return ret;
 }
 
+couchstore_error_t get_key(struct couchfile_lookup_request *rq,
+                    const sized_buf *k,
+                    const sized_buf *v)
+{
+    //for(int i=0;i<k->size;i++)
+    //   printf("%02x ",k->buf[i]);
+    //printf("\n");
+    result_list_t *res = (result_list_t *) rq->callback_ctx;
+    result_list_t *newnode = (result_list_t *) malloc(sizeof(result_list_t));
+    if (newnode == NULL) {
+        return COUCHSTORE_ERROR_ALLOC_FAIL;
+    }
+    uint16_t key_len = decode_raw16(*((raw_16 *) k->buf));
+    newnode->k = malloc(sizeof(sized_buf));
+    newnode->k->buf = malloc(key_len);
+    memcpy(newnode->k->buf, k->buf+2, key_len);
+    newnode->k->size = key_len;
+
+    if (v) {
+        //uint16_t val_len = decode_raw16(*((raw_16 *) v->buf));
+        uint16_t val_len = v->size;
+        //printf("val length is  %d", val_len);
+        newnode->v = malloc(sizeof(sized_buf));
+        newnode->v->buf = malloc(val_len);
+        memcpy(newnode->v->buf, v->buf+5, val_len - 5);
+        newnode->v->size = val_len - 5;
+    }
+
+    newnode->next = NULL;
+    res->next = newnode;
+    rq->callback_ctx = (void *) newnode;
+    return COUCHSTORE_SUCCESS;
+}
+
+
+//Needs the view name also to know which view to be search
+LIBCOUCHSTORE_API
+couchstore_error_t couchstore_handle_query_request(view_group_info_t *info,
+                                                   sized_buf *header_buf,
+                                                   result_list_t **rl,
+                                                   view_query_request_t *query_req,
+                                                   view_error_t *error_info)
+
+{
+    sized_buf startKey = {NULL, 0};
+    sized_buf *p = &startKey;
+    node_pointer *np;
+    index_header_t *header = NULL;
+    couchstore_error_t ret;
+    couchfile_lookup_request rq;
+    couchstore_error_t errcode;
+    tree_file index_file;
+    result_list_t query_result;
+    np = read_root((void *) header_buf->buf, (int) header_buf->size);
+    ret = open_view_group_file(info->filepath,
+                               0,
+                               &index_file);
+    if (ret != COUCHSTORE_SUCCESS) {
+        return ret;
+    }
+
+    rq.cmp.compare = view_key_cmp;
+    rq.file = &index_file;
+    rq.num_keys = 1;
+    rq.keys = &query_req->keys;
+    //rq.keys = &p;
+    rq.callback_ctx = (void *) &query_result;
+    rq.fetch_callback = get_key;
+    rq.node_callback = NULL;
+    rq.fold = 1;
+    ret = btree_lookup(&rq, np->pointer);
+    result_list_t * q = &query_result;
+    *rl = q->next;
+    //while (q->next) {
+    //    sized_buf *k = q->k, *u = q->v;
+    //    printf("%.*s \n ", k->size, k->buf);
+        //printf("%.*s \n", u->size, u->buf);
+    //    for(int i=0;i<k->size;i++)
+            //printf("%02x ",k->buf[i]);
+        //printf("\n");
+    //    q = q->next;
+    //}
+    return ret;
+}
+
+
 LIBCOUCHSTORE_API
 couchstore_error_t couchstore_update_view_group(view_group_info_t *info,
                                                const char *id_records_file,

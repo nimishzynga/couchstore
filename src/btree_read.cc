@@ -100,7 +100,8 @@ static couchstore_error_t btree_lookup_inner(couchfile_lookup_request *rq,
                 if (cmp_val == 0 || rq->in_fold) { // Found
                     error_pass(rq->fetch_callback(rq, &cmp_key, &val_buf));
                 } else {
-                    error_pass(rq->fetch_callback(rq, rq->keys[current], NULL));
+                    error_pass(rq->fetch_callback(rq, &cmp_key, &val_buf));
+                    //error_pass(rq->fetch_callback(rq, rq->keys[current], NULL));
                 }
                 if (!rq->in_fold) {
                     ++current;
