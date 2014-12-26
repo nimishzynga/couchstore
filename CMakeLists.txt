@@ -1,6 +1,10 @@
 PROJECT(Couchstore)
 CMAKE_MINIMUM_REQUIRED(VERSION 2.8)
 
+IF (${CMAKE_MAJOR_VERSION} GREATER 2)
+    CMAKE_POLICY(SET CMP0042 NEW)
+ENDIF (${CMAKE_MAJOR_VERSION} GREATER 2)
+
 INCLUDE(CheckFunctionExists)
 INCLUDE(CheckIncludeFile)
 INCLUDE(CheckIncludeFiles)
@@ -44,7 +48,8 @@ SET(COUCHSTORE_SOURCES src/arena.cc src/bitfield.c src/btree_modify.cc
             src/views/mapreduce/mapreduce.cc
             src/views/mapreduce/mapreduce_c.cc src/views/reducers.c
             src/views/reductions.c src/views/sorted_list.c
-            src/views/spatial.c src/views/util.c src/views/values.c
+            src/views/spatial.c src/views/spatial_modify.c
+            src/views/util.c src/views/values.c
             src/views/view_group.c src/views/purgers.c
             src/views/compaction.c src/quicksort.c ${COUCHSTORE_FILE_OPS})
 SET(COUCHSTORE_LIBRARIES ${V8_LIBRARIES} ${ICU_LIBRARIES} ${SNAPPY_LIBRARIES} platform)
@@ -58,13 +63,10 @@ SET_TARGET_PROPERTIES(couch_dbdump PROPERTIES COMPILE_FLAGS "-DLIBCOUCHSTORE_NO_
 TARGET_LINK_LIBRARIES(couch_dbdump ${COUCHSTORE_LIBRARIES})
 
 ADD_EXECUTABLE(couch_dbinfo src/dbinfo.c)
-TARGET_LINK_LIBRARIES(couch_dbinfo couchstore)
+TARGET_LINK_LIBRARIES(couch_dbinfo couchstore platform)
 
 ADD_EXECUTABLE(couch_compact src/compactor.c)
 TARGET_LINK_LIBRARIES(couch_compact couchstore)
-
-ADD_EXECUTABLE(couch_view_file_sorter src/views/bin/couch_view_file_sorter.c src/views/bin/util.c)
-TARGET_LINK_LIBRARIES(couch_view_file_sorter couchstore)
 
 ADD_EXECUTABLE(couch_view_file_merger src/views/bin/couch_view_file_merger.c src/views/bin/util.c)
 TARGET_LINK_LIBRARIES(couch_view_file_merger couchstore)
@@ -103,7 +105,6 @@ INSTALL(TARGETS couchstore
 INSTALL(TARGETS couch_dbdump
                 couch_dbinfo
                 couch_compact
-                couch_view_file_sorter
                 couch_view_file_merger
                 couch_view_index_builder
                 couch_view_group_cleanup
@@ -179,7 +180,8 @@ ADD_EXECUTABLE(couchstore_testapp tests/testapp.c
 	tests/btree_purge/tests.c
 	tests/btree_purge/purge.c
         ${COUCHSTORE_SOURCES} )
-SET_TARGET_PROPERTIES(couchstore_testapp PROPERTIES COMPILE_FLAGS "-DLIBCOUCHSTORE_NO_VISIBILITY=1")
+SET_TARGET_PROPERTIES(couchstore_testapp PROPERTIES
+                      COMPILE_FLAGS "-DLIBCOUCHSTORE_NO_VISIBILITY=1 -DTESTAPP=1")
 
 TARGET_LINK_LIBRARIES(couchstore_testapp ${COUCHSTORE_LIBRARIES})
 ADD_TEST(couchstore-testapp couchstore_testapp)

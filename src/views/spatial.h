@@ -24,6 +24,7 @@
 #include "config.h"
 #include <libcouchstore/couch_db.h>
 #include "../file_merger.h"
+#include "../couch_btree.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -32,9 +33,9 @@ extern "C" {
     #define ZCODE_MAX_VALUE UINT32_MAX
 
     typedef struct {
-        const double *mbb;
+        double *mbb;
         /* the total number of values (two times the dimension) */
-        uint32_t num;
+        uint16_t num;
     } sized_mbb_t;
 
     /* It is used to scale up MBBs to the relative size of an enclosing one */
@@ -45,9 +46,17 @@ extern "C" {
         /* The scale factors for every dimension */
         double *scales;
         /* the total number of values, one per dimension */
-        uint16_t dim;
+        uint8_t dim;
     } scale_factor_t;
 
+    /* The context to build the initial index */
+    typedef struct {
+        arena                   *transient_arena;
+        couchfile_modify_result *modify_result;
+        /* Scale MBBs up for a better results when using the space filling
+         * curve */
+        scale_factor_t          *scale_factor;
+    } view_spatial_builder_ctx_t;
 
     /* compare keys of a spatial index */
     int spatial_key_cmp(const sized_buf *key1, const sized_buf *key2,
@@ -79,6 +88,23 @@ extern "C" {
      * with length 4 bytes * number of numbers.
      * The maximum number of numbers is (2^14)-1 (16383). */
     unsigned char *interleave_uint32s(uint32_t *numbers, uint16_t num);
+
+    /* A reduce is used to calculate the enclosing MBB of a parent node (it's
+     * its key) */
+    couchstore_error_t view_spatial_reduce(char *dst,
+                                           size_t *size_r,
+                                           const nodelist *leaflist,
+                                           int count,
+                                           void *ctx);
+
+    /* Puts an item into the results set. If there are enough items they are
+     * are flused to disk */
+    couchstore_error_t spatial_push_item(sized_buf *k, sized_buf *v,
+                                         couchfile_modify_result *dst);
+
+    /* Build an r-tree bottom-up from the already stored leaf nodes */
+    node_pointer* complete_new_spatial(couchfile_modify_result* mr,
+                                       couchstore_error_t *errcode);
 
 #ifdef __cplusplus
 }

@@ -38,14 +38,6 @@ couchstore_error_t couchstore_compact_db_ex(Db* source, const char* target_filen
                                             const couch_file_ops *ops)
 {
     Db* target = NULL;
-#ifdef WIN32
-#define PATH_MAX MAX_PATH
-#endif
-
-#ifndef PATH_MAX
-#define PATH_MAX 1024
-#endif
-
     char tmpFile[PATH_MAX]; // keep this on the stack for duration of the call
     couchstore_error_t errcode;
     compact_ctx ctx = {NULL, new_arena(0), new_arena(0), NULL, NULL, hook, dhook, hook_ctx, 0};
@@ -88,9 +80,11 @@ cleanup:
     TreeWriterFree(ctx.tree_writer);
     delete_arena(ctx.transient_arena);
     delete_arena(ctx.persistent_arena);
-    couchstore_close_db(target);
-    if (errcode != COUCHSTORE_SUCCESS && target != NULL) {
-        remove(target_filename);
+    if (target != NULL) {
+        couchstore_close_db(target);
+        if (errcode != COUCHSTORE_SUCCESS) {
+            remove(target_filename);
+        }
     }
     return errcode;
 }
