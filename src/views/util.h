@@ -68,6 +68,12 @@ extern "C" {
         char *view_name;
     } view_query_request_t;
 
+    /* function will fill this structure */
+    typedef struct {
+        int num_queries;
+        view_query_request_t *query;
+    } view_query_requests_t;
+
     /* compare keys of a view btree */
     int view_key_cmp(const sized_buf *key1, const sized_buf *key2,
                      const void *user_ctx);

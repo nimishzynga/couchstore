@@ -17,7 +17,8 @@ INCLUDE_DIRECTORIES(BEFORE ${CMAKE_INSTALL_PREFIX}/include
                            ${CMAKE_CURRENT_SOURCE_DIR}/src
                            ${CMAKE_CURRENT_BINARY_DIR}
                            ${CMAKE_CURRENT_SOURCE_DIR}
-                           ${Platform_SOURCE_DIR}/include)
+                           ${Platform_SOURCE_DIR}/include
+                           ${LIBEVENT_INCLUDE_DIR})
 
 INCLUDE_DIRECTORIES(AFTER ${ICU_INCLUDE_DIR}
                           ${V8_INCLUDE_DIR}
@@ -83,8 +84,16 @@ TARGET_LINK_LIBRARIES(couch_view_index_updater couchstore)
 ADD_EXECUTABLE(couch_view_group_compactor src/views/bin/couch_view_group_compactor.c src/views/bin/util.c)
 TARGET_LINK_LIBRARIES(couch_view_group_compactor couchstore)
 
-ADD_EXECUTABLE(couch_view_query src/views/bin/couch_view_query.c src/views/bin/util.c)
-TARGET_LINK_LIBRARIES(couch_view_query couchstore)
+ADD_EXECUTABLE(couch_view_query 
+               src/views/bin/couch_view_query.cc 
+               src/views/bin/util.c
+               src/views/bin/query/task.cc
+               src/views/bin/query/json_parse.cc
+               src/views/bin/query/jsmn.c
+               src/views/bin/query/http_parser.c
+               src/views/bin/query/test_parser.c)
+
+TARGET_LINK_LIBRARIES(couch_view_query couchstore ${LIBEVENT_LIBRARIES})
 
 IF (INSTALL_HEADER_FILES)
    INSTALL(FILES

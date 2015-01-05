@@ -21,9 +21,14 @@
 #ifndef _BIN_UTILS_H
 #define _BIN_UTILS_H
 
+#ifdef __cplusplus
+extern "C" {
+#endif
 #include "config.h"
     /* Start a thread to handle exit message*/
     int start_exit_listener(cb_thread_t *id);
     int set_binary_mode(void);
-
+#ifdef __cplusplus
+}
+#endif
 #endif
